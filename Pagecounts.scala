@@ -15,6 +15,8 @@ object Pagecounts
 	}
 	
 
+
+	//Filters the lines where the page name equals the language code (by returning false)
 	def filterFunc(line: String) : Boolean = {
 		var splitString: Array[String] = line.split(" ")
 		val langCode = StringUtils.substringBefore(splitString(0), ".")
@@ -43,6 +45,10 @@ object Pagecounts
 		return lang + " " + line + "\n"
 	}
 
+
+	//Merges two lines with the same key (langua code) by:
+	//Adding their total views to a bigger total 
+	//Keeping the most viewed page's title and views
 	def reduceFunc( a: String, b: String) :  String = { 
 	 	var asplit:Array[String] = a.split(" ")
 	 	var bsplit:Array[String] = b.split(" ")
@@ -88,17 +94,17 @@ object Pagecounts
 		//open the file
         val pagecounts = sc.textFile(inputFile)
 
-                                             
+        //Filters the lines where the page name equals the language code
+        //Maps the line using the language code as its key                 
         val tuplesByLang = pagecounts.filter(filterFunc).map(line =>  mapFunc(line))
 
-
+        //Groups every line with the same language code, finding the total views of that language and it's most viewed page
         val languagesViews = tuplesByLang.reduceByKey(reduceFunc)
 
-       // languagesViews.foreach(println)
-
-
+        //Remaps every language to its total views and sorts them in descending order
         val sorted = languagesViews.values.map(line => (line.split(" ")(1).toInt, line)).sortByKey(false)
 
+        //Adds the language name to every line
         val outRDD = sorted.values.map(line => languAdd(line))
        
 		// outRDD would have elements of type String.
