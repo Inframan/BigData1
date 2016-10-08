@@ -20,7 +20,8 @@ object Twitterstats
 	}
 
 
-
+	//stores the necessary attributes of twitter4j.Status in SimplifiedStatus
+	//return a tuple of originalId, simple
 	def mapRetweetsById(status : twitter4j.Status) : (Long, SimplifiedStatus) =
 	{
 		
@@ -36,13 +37,8 @@ object Twitterstats
 
 	}
 
-	def mapRetweetsBy(status: SimplifiedStatus) : (String, SimplifiedStatus) = {
-		
-		status.retweets = status.upperBound - status.lowerBound +1
-
-		return (status.lang, status)
-	}
-
+	//Updates the SimplifiedStatus retweet count
+	//Returns a tuple of Language-code and SimplifiedStatus
 	def mapLangs(status: SimplifiedStatus) : (String, SimplifiedStatus) = {
 		
 		status.retweets = status.upperBound - status.lowerBound + 1
@@ -124,7 +120,7 @@ object Twitterstats
 			
 			println("Logging the output to the log file\nElapsed time = " + seconds + " seconds\n-----------------------------------")
 			
-			for(i <-0 until a.size)
+			for(i <-0 until a.size)	
 			{
 				val langCode = a(i)._1
 				val lang = getLangName(langCode)
@@ -183,16 +179,22 @@ object Twitterstats
 		// Add your code here
 		
 
+		//Filters the tweets int the stream, leaving only retweets
  		val retweets = tweets.filter(status => status.isRetweet())
 
+ 		//maps every retweet its original tweet id
  		val mapedRetweetsByOriginalId = retweets.map(status => mapRetweetsById(status)) 
 
+ 		//reduces every retweet with the same key to have one with the lowestBound highestBound
         val counts = mapedRetweetsByOriginalId.reduceByKeyAndWindow(reduceRetweets(_,_), Seconds(60), Seconds(5))
 
+        //maps the remainning retweets to its language code
         val groupByLang = counts.map(status => mapLangs(status._2) )
 
+        //reduces every language to the single most retweeted tweet
         val maxLangCount = groupByLang.reduceByKeyAndWindow(reduceLangs(_,_), Seconds(60), Seconds(5))
 
+        //Joins the most retweeted tweet in a language with every other tweet in the same language
         val everything = maxLangCount.fullOuterJoin(groupByLang).map(line => mapOuterJoin(line)) //	.foreachRDD(sortByKey(false))
 
         everything.foreachRDD(_.sortByKey(false).foreach(x => write2Log(x._2)))
