@@ -62,7 +62,6 @@ object Twitterstats
 		var  arr:Array[(String, Long, Long, String, Long, Long)] = Array((left.lang,left.retweets, right.originalId,	 right.content, right.upperBound, right.lowerBound))
 		var l:Long  = left.retweets
 
-
 		return (l, arr)
 
 	}
@@ -195,10 +194,12 @@ object Twitterstats
         val maxLangCount = groupByLang.reduceByKeyAndWindow(reduceLangs(_,_), Seconds(60), Seconds(5))
 
         //Joins the most retweeted tweet in a language with every other tweet in the same language
-        val everything = maxLangCount.fullOuterJoin(groupByLang).map(line => mapOuterJoin(line)) //	.foreachRDD(sortByKey(false))
+        val everything = maxLangCount.fullOuterJoin(groupByLang).map(line => mapOuterJoin(line))
+		
+        everything.transform(rdd=>rdd.sortByKey(false))
 
-        everything.foreachRDD(_.sortByKey(false).foreach(x => write2Log(x._2)))
-		//everything.foreachRDD(_.foreach(x => println(x._1+ " => "+x._2.deep.mkString(" " ))))
+        everything.foreachRDD(_.foreach(x => write2Log(x._2)))
+		//everything.foreachRDD(_.sortByKey(false).foreach(x => println(x._1+ " => "+x._2.deep.mkString(" "))))
 
          
  //       val sortedCounts = counts.map {case(tag, count) => (count, tag)}.transform(rdd => rdd.sortByKey(false))
