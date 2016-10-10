@@ -103,7 +103,7 @@ object AnalyzeTwitters
 
 		 val sorted = reduceLang.fullOuterJoin(mappedByLang).map(line => mapOuterJoin(line))
 
-		 val outRDD = sorted.filter(line => line._2.retweets >2).sortBy(r => (r._2.totalRetweetsInThatLang, r._2.retweets), false)
+		 val outRDD = sorted.filter(line => line._2.retweets >1).sortBy(r => (r._2.totalRetweetsInThatLang, r._2.retweets), false)
 
 		// outRDD would have elements of type String.
 		// val outRDD = ...
