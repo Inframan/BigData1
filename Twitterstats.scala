@@ -27,7 +27,7 @@ object Twitterstats
 		
 		val originalId = status.getRetweetedStatus.getId
 		val retweetsCount = status.getRetweetedStatus().getRetweetCount()
-		val text = status.getRetweetedStatus().getText()
+		val text = status.getText()
 		val lang = getLang(text) 
 		val id = status.getId()
 
@@ -52,17 +52,17 @@ object Twitterstats
 	//The righ element contains the tweet itself
 	//Output has the language's total retweers as key, and the write2Log input format:
 	// (lang, totalRetweetsInThatLang, idOfOriginalTweet, text, maxRetweetCount, minRetweetCount)
-	def mapOuterJoin(line: (String, (Option[SimplifiedStatus], Option[SimplifiedStatus]))) : (Long, Array[(String, Long, Long, String, Long, Long)] ) = {
+	def mapOuterJoin(line: (String, (Option[SimplifiedStatus], Option[SimplifiedStatus]))) : (String, Long, Long, String, Long, Long)  = {
 		
 
 		val left = line._2._1.get
 		val right =  line._2._2.get
 
 		
-		var  arr:Array[(String, Long, Long, String, Long, Long)] = Array((left.lang,left.retweets, right.originalId,	 right.content, right.upperBound, right.lowerBound))
-		var l:Long  = left.retweets
+		var  tup:(String, Long, Long, String, Long, Long) = (left.lang,left.retweets, right.originalId,	 right.content, right.upperBound, right.lowerBound)
+		
 
-		return (l, arr)
+		return tup
 
 	}
 
@@ -85,13 +85,14 @@ object Twitterstats
 
 	def reduceRetweets(a: SimplifiedStatus, b: SimplifiedStatus) : SimplifiedStatus =
 	{
-		if(a.id > b.id)
+		if(a.upperBound > b.upperBound)
 		{
-			a.lowerBound = b.lowerBound
+			a.lowerBound = b.lowerBound			
 			return a
 		}
 		else{
 			b.lowerBound = a.lowerBound
+			
 			return b
 		}
 
@@ -177,7 +178,7 @@ object Twitterstats
 		
 		// Add your code here
 		
-
+		//tweets.foreachRDD(_.take(100).println)
 		//Filters the tweets int the stream, leaving only retweets
  		val retweets = tweets.filter(status => status.isRetweet())
 
@@ -194,11 +195,13 @@ object Twitterstats
         val maxLangCount = groupByLang.reduceByKeyAndWindow(reduceLangs(_,_), Seconds(60), Seconds(5))
 
         //Joins the most retweeted tweet in a language with every other tweet in the same language
-        val everything = maxLangCount.fullOuterJoin(groupByLang).map(line => mapOuterJoin(line))
+        val everything = maxLangCount.fullOuterJoin(groupByLang).filter(line => !(line._2._1.isEmpty || line._2._2.isEmpty))
+        	.map(line => mapOuterJoin(line))
 		
-        everything.transform(rdd=>rdd.sortByKey(false))
+		
+        everything.transform(rdd=>rdd.sortBy( r => (r._2, r._5 - r._6 +1), false))
 
-        everything.foreachRDD(_.foreach(x => write2Log(x._2)))
+        everything.foreachRDD(x =>  write2Log(x.collect ))
 		//everything.foreachRDD(_.sortByKey(false).foreach(x => println(x._1+ " => "+x._2.deep.mkString(" "))))
 
          
