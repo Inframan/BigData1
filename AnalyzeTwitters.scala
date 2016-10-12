@@ -97,7 +97,7 @@ object AnalyzeTwitters
 
 		// (id, Tweet)
 		//Tweet = (langCode,id,maxRetweetCount,minRetweetCount,text,totalRetweetsInThatLang,retweets)
-		val mappedById = analyzeTweets.map(line => mapTweet(line))
+		val mappedById = analyzeTweets.filter(line => line.split(",").length >8).map(line => mapTweet(line))
 		
 		// (id, Tweet)
 		val tweetCount = mappedById.reduceByKey(reduceById(_,_))
