@@ -113,7 +113,7 @@ object AnalyzeTwitters
 		// outRDD would have elements of type String.
 		// val outRDD = ...
 		// Write output
-		val bw = new BufferedWriter(new OutputStreamWriter(System.out, "UTF-8"))
+		val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("part3.txt"), "UTF-8"))
 		bw.write("Language,Language-code,TotalRetweetsInThatLang,IDOfTweet,RetweetCount,Text\n")
 		outRDD.collect.foreach(x => bw.write(getLangName(x._2.langCode) + "," + x._2.langCode + ","+ x._2.totalRetweetsInThatLang.toString  + ","+ x._2.id.toString + "," + x._2.retweets.toString + "," + x._2.text +"\n"))
 		bw.close
