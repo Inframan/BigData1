@@ -114,7 +114,7 @@ object Pagecounts
 		// outRDD would have elements of type String.
 		// val outRDD = ...
 		// Write output
-		val bw = new BufferedWriter(new OutputStreamWriter(System.out, "UTF-8"))
+		val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("part1.txt"), "UTF-8"))
 		bw.write("Language,Language-code,TotalViewsInThatLang,MostVisitedPageInThatLang,ViewsOfThatPage\n")
 		outRDD.collect.foreach(x => bw.write(x))
 		bw.close
