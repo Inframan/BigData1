@@ -19,7 +19,11 @@ object AnalyzeTwitters
 		 
 
 		val l_split = line.split(",")
-		var tweet:Tweet = Tweet(l_split(2), l_split(4).toLong, l_split(5).toLong, l_split(6).toLong, l_split(8), 0, 0)
+		var text:String = l_split(8)
+		for( i <- 9 to l_split.length -1){
+         text += "," + l_split(i)
+      	}
+		var tweet:Tweet = Tweet(l_split(2), l_split(4).toLong, l_split(5).toLong, l_split(6).toLong, text, 0, 0)
 
 
 		return (tweet.id , tweet)
