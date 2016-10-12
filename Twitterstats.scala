@@ -15,24 +15,24 @@ object Twitterstats
 	var t0: Long = 0
 	val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("twitterLog.txt"), "UTF-8"))
 	
-	case class SimplifiedStatus(var originalId:Long, var content:String, var lang:String, var lowerBound:Long, var upperBound:Long, var retweets:Long ) {
+	case class SimplifiedStatus(var id:Long, var text:String, var lang:String, var minRetweets:Long, var maxRetweets:Long, var totalLangRetweets:Long ) {
 		
 	}
 
 
 	//stores the necessary attributes of twitter4j.Status in SimplifiedStatus
-	//return a tuple of originalId, simple
+	//return a tuple of id, simple
 	def mapRetweetsById(status : twitter4j.Status) : (Long, SimplifiedStatus) =
 	{
 		
-		val originalId = status.getRetweetedStatus.getId
+		val id = status.getRetweetedStatus.getId
 		val retweetsCount = status.getRetweetedStatus().getRetweetCount()
 		val text = status.getText()
 		val lang = getLang(text) 
 
-		val simple = new SimplifiedStatus(originalId, text,lang, retweetsCount, retweetsCount, 0)
+		val simple = new SimplifiedStatus(id, text,lang, retweetsCount, retweetsCount, 0)
 		
-		return (originalId, simple)
+		return (id, simple)
 
 	}
 
@@ -40,7 +40,7 @@ object Twitterstats
 	//Returns a tuple of Language-code and SimplifiedStatus
 	def mapLangs(status: SimplifiedStatus) : (String, SimplifiedStatus) = {
 		
-		status.retweets = status.upperBound - status.lowerBound + 1
+		status.totalLangRetweets = status.maxRetweets - status.minRetweets + 1
 
 		return (status.lang, status)
 	}
@@ -58,7 +58,7 @@ object Twitterstats
 		val right =  line._2._2.get
 
 		
-		var  tup:(String, Long, Long, String, Long, Long) = (left.lang,left.retweets, right.originalId,	 right.content, right.upperBound, right.lowerBound)
+		var  tup:(String, Long, Long, String, Long, Long) = (left.lang,left.totalLangRetweets, right.id,	 right.text, right.maxRetweets, right.minRetweets)
 		
 
 		return tup
@@ -68,14 +68,14 @@ object Twitterstats
 
 
 	def reduceLangs(a: SimplifiedStatus, b: SimplifiedStatus) : SimplifiedStatus = {
-		if(a.retweets < b.retweets)
+		if(a.totalLangRetweets < b.totalLangRetweets)
 		{
-			a.retweets += b.retweets				
+			a.totalLangRetweets += b.totalLangRetweets				
 			return a
 		}
 		else
 		{
-			b.retweets += a.retweets
+			b.totalLangRetweets += a.totalLangRetweets
 			return b
 		}
 	}
@@ -84,13 +84,13 @@ object Twitterstats
 
 	def reduceRetweets(a: SimplifiedStatus, b: SimplifiedStatus) : SimplifiedStatus =
 	{
-		if(a.upperBound > b.upperBound)
+		if(a.maxRetweets > b.maxRetweets)
 		{
-			a.lowerBound = b.lowerBound			
+			a.minRetweets = b.minRetweets			
 			return a
 		}
 		else{
-			b.lowerBound = a.lowerBound
+			b.minRetweets = a.minRetweets
 			
 			return b
 		}
@@ -185,11 +185,11 @@ object Twitterstats
  		//maps every retweet its original tweet id
  		// (id, SimplifiedStatus)
  		// SimplifiedStatus = (id, text,langCode,minRetweets,maxRetweets, totalRetweetsInThatLang)
- 		val mapedRetweetsByOriginalId = retweets.map(status => mapRetweetsById(status)) 
+ 		val mapedRetweetsByid = retweets.map(status => mapRetweetsById(status)) 
 
  		//reduces every retweet with the same key to have one with the lowestBound highestBound
  		// (id, SimplifiedStatus)
-        val counts = mapedRetweetsByOriginalId.reduceByKeyAndWindow(reduceRetweets(_,_), Seconds(60), Seconds(5))
+        val counts = mapedRetweetsByid.reduceByKeyAndWindow(reduceRetweets(_,_), Seconds(60), Seconds(5))
 
         //maps the remainning retweets to its language code
         // (langCode, SimplifiedStatus)
