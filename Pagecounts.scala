@@ -95,16 +95,20 @@ object Pagecounts
         val pagecounts = sc.textFile(inputFile)
 
         //Filters the lines where the page name equals the language code
-        //Maps the line using the language code as its key                 
+        //Maps the line using the language code as its key    
+        // (langCode, (langCode, totalViewsInThatLang, mostVisitedPageInThatLang, viewsOfThatPage))             
         val tuplesByLang = pagecounts.filter(filterFunc).map(line =>  mapFunc(line))
 
         //Groups every line with the same language code, finding the total views of that language and it's most viewed page
+        // (langCode, (langCode, totalViewsInThatLang, mostVisitedPageInThatLang, viewsOfThatPage))             
         val languagesViews = tuplesByLang.reduceByKey(reduceFunc)
 
         //Remaps every language to its total views and sorts them in descending order
+        // (totalViewsInThatLang, (langCode, totalViewsInThatLang, mostVisitedPageInThatLang, viewsOfThatPage))             
         val sorted = languagesViews.values.map(line => (line.split(" ")(1).toInt, line)).sortByKey(false)
 
         //Adds the language name to every line
+        // (Language,Language-code,TotalViewsInThatLang,MostVisitedPageInThatLang,ViewsOfThatPage)
         val outRDD = sorted.values.map(line => languAdd(line))
        
 		// outRDD would have elements of type String.
