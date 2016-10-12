@@ -56,10 +56,7 @@ object Twitterstats
 
 		val left = line._2._1.get
 		val right =  line._2._2.get
-
-		
 		var  tup:(String, Long, Long, String, Long, Long) = (left.lang,left.totalLangRetweets, right.id,	 right.text, right.maxRetweets, right.minRetweets)
-		
 
 		return tup
 
@@ -84,17 +81,10 @@ object Twitterstats
 
 	def reduceRetweets(a: SimplifiedStatus, b: SimplifiedStatus) : SimplifiedStatus =
 	{
-		if(a.maxRetweets > b.maxRetweets)
-		{
-			a.minRetweets = b.minRetweets			
-			return a
-		}
-		else{
-			b.minRetweets = a.minRetweets
-			
-			return b
-		}
+		a.maxRetweets = Math.max(a.maxRetweets, b.maxRetweets)
+		a.minRetweets = Math.min(a.minRetweets, b.minRetweets)
 
+		return a
 	}
 	
 	// This function will be called periodically after each 5 seconds to log the output. 
@@ -187,7 +177,7 @@ object Twitterstats
  		// SimplifiedStatus = (id, text,langCode,minRetweets,maxRetweets, totalRetweetsInThatLang)
  		val mapedRetweetsByid = retweets.map(status => mapRetweetsById(status)) 
 
- 		//reduces every retweet with the same key to have one with the lowestBound highestBound
+ 		//reduces every retweet with the same key to one with the minRetweets and maxRetweets
  		// (id, SimplifiedStatus)
         val counts = mapedRetweetsByid.reduceByKeyAndWindow(reduceRetweets(_,_), Seconds(60), Seconds(5))
 
