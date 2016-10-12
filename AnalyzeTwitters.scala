@@ -10,7 +10,7 @@ object AnalyzeTwitters
 {
 
 	//Language,Language-code,TotalRetweetsInThatLang,IDOfTweet,MaxRetweetCount,MinRetweetCount,RetweetCount,Text
-	case class Tweet(var langCode:String, var id:Long, var upperBound:Long, var lowerBound:Long, var text:String, var totalRetweetsInThatLang:Long, var retweets:Long)
+	case class Tweet(var langCode:String, var id:Long, var maxRetweetCount:Long, var minRetweetCount:Long, var text:String, var totalRetweetsInThatLang:Long, var retweets:Long)
 	{
 
 	}
@@ -28,7 +28,7 @@ object AnalyzeTwitters
 	def mapLang(tweet: Tweet) : (String, Tweet) = {
 		
 
-		tweet.retweets = tweet.upperBound - tweet.lowerBound + 1
+		tweet.retweets = tweet.maxRetweetCount - tweet.minRetweetCount + 1
 		tweet.totalRetweetsInThatLang = tweet.retweets 
 
 		return (tweet.langCode,tweet)
@@ -41,7 +41,7 @@ object AnalyzeTwitters
 		val right =  line._2._2.get
 
 		
-		var  tweet:Tweet = Tweet(left.langCode,right.id,right.upperBound, right.lowerBound, right.text, left.totalRetweetsInThatLang, right.retweets )
+		var  tweet:Tweet = Tweet(left.langCode,right.id,right.maxRetweetCount, right.minRetweetCount, right.text, left.totalRetweetsInThatLang, right.retweets )
 		var l:Long  = left.totalRetweetsInThatLang
 
 		return (l, tweet)
@@ -56,11 +56,9 @@ object AnalyzeTwitters
 
 	def reduceById(a: Tweet, b: Tweet ) : Tweet = {
 		
-		if(a.lowerBound > b.lowerBound)
-			a.lowerBound = b.lowerBound
 
-		if(a.upperBound < b.upperBound)
-			a.upperBound = b.upperBound	
+		a.minRetweetCount = Math.min(a.minRetweetCount, b.minRetweetCount)
+		a.maxRetweetCount = Math.max(a.maxRetweetCount, b.maxRetweetCount)
 
 		return a
 	}
@@ -90,20 +88,27 @@ object AnalyzeTwitters
 		
 		// Add your code here
 		
-													//Filters the first line of the file (header)
-		 val analyzeTweets = sc.textFile(inputFile).filter(!_.startsWith("Seconds") )
+		//Filters the first line of the file (header)
+		val analyzeTweets = sc.textFile(inputFile).filter(!_.startsWith("Seconds") )
 
-		 val mappedById = analyzeTweets.map(line => mapTweet(line))
+		// (id, Tweet)
+		//Tweet = (langCode,id,maxRetweetCount,minRetweetCount,text,totalRetweetsInThatLang,retweets)
+		val mappedById = analyzeTweets.map(line => mapTweet(line))
+		
+		// (id, Tweet)
+		val tweetCount = mappedById.reduceByKey(reduceById(_,_))
 
-		 val tweetCount = mappedById.reduceByKey(reduceById(_,_))
+		// (langCode, Tweet)
+		val mappedByLang = tweetCount.map(line => mapLang(line._2))
 
-		 val mappedByLang = tweetCount.map(line => mapLang(line._2))
+		// (langCode, Tweet)
+		val reduceLang = mappedByLang.reduceByKey(reduceByLang(_,_))
 
-		 val reduceLang = mappedByLang.reduceByKey(reduceByLang(_,_))
+		// (totalRetweetsInThatLang, Tweet)
+		val sorted = reduceLang.fullOuterJoin(mappedByLang).filter(line => !(line._2._1.isEmpty || line._2._2.isEmpty)).map(line => mapOuterJoin(line))
 
-		 val sorted = reduceLang.fullOuterJoin(mappedByLang).map(line => mapOuterJoin(line))
-
-		 val outRDD = sorted.filter(line => line._2.retweets >1).sortBy(r => (r._2.totalRetweetsInThatLang, r._2.retweets), false)
+		// (totalRetweetsInThatLang, Tweet)
+		val outRDD = sorted.filter(line => line._2.retweets >1).sortBy(r => (r._2.totalRetweetsInThatLang, r._2.retweets), false)
 
 		// outRDD would have elements of type String.
 		// val outRDD = ...
