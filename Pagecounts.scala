@@ -111,16 +111,16 @@ object Pagecounts
         // (Language,Language-code,TotalViewsInThatLang,MostVisitedPageInThatLang,ViewsOfThatPage)
         val outRDD = sorted.values.map(line => languAdd(line))
        
-		// outRDD would have elements of type String.
-		// val outRDD = ...
-		// Write output
-		val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("part1.txt"), "UTF-8"))
-		bw.write("Language,Language-code,TotalViewsInThatLang,MostVisitedPageInThatLang,ViewsOfThatPage\n")
-		outRDD.collect.foreach(x => bw.write(x))
-		bw.close
+	// outRDD would have elements of type String.
+	// val outRDD = ...
+	// Write output
+	val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("part1.txt"), "UTF-8"))
+	bw.write("Language,Language-code,TotalViewsInThatLang,MostVisitedPageInThatLang,ViewsOfThatPage\n")
+	outRDD.collect.foreach(x => bw.write(x))
+	bw.close
 		
-		val et = (System.currentTimeMillis - t0) / 1000
-		System.err.println("Done!\nTime taken = %d mins %d secs".format(et / 60, et % 60))
+	val et = (System.currentTimeMillis - t0) / 1000
+	System.err.println("Done!\nTime taken = %d mins %d secs".format(et / 60, et % 60))
 	}
 }
 
