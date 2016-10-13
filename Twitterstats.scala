@@ -154,31 +154,31 @@ object Twitterstats
   
 	def main(args: Array[String]) 
 	{
-		// Configure Twitter credentials
-		val apiKey = "ylMD9p01ej99BOHBYyZGfwZnk"
-		val apiSecret = "nPH5uJOhEPLqZFaJvQSYA3pOSeaQkngPJrfz41n4dgdYrUhrud"
-		val accessToken = "1569267878-zBhZFGF7ThUNuFZQfabwTdQeaAN2AE54rgwaEJ2"
-		val accessTokenSecret = "hfboUA6gF1FGglycp6xFhvqmh1vGInvpWG1m3Azag6dhm"
+	// Configure Twitter credentials
+	val apiKey = "ylMD9p01ej99BOHBYyZGfwZnk"
+	val apiSecret = "nPH5uJOhEPLqZFaJvQSYA3pOSeaQkngPJrfz41n4dgdYrUhrud"
+	val accessToken = "1569267878-zBhZFGF7ThUNuFZQfabwTdQeaAN2AE54rgwaEJ2"
+	val accessTokenSecret = "hfboUA6gF1FGglycp6xFhvqmh1vGInvpWG1m3Azag6dhm"
 		
-		Helper.configureTwitterCredentials(apiKey, apiSecret, accessToken, accessTokenSecret)
+	Helper.configureTwitterCredentials(apiKey, apiSecret, accessToken, accessTokenSecret)
 		
-		val ssc = new StreamingContext(new SparkConf(), Seconds(5))
-		val tweets = TwitterUtils.createStream(ssc, None)
+	val ssc = new StreamingContext(new SparkConf(), Seconds(5))
+	val tweets = TwitterUtils.createStream(ssc, None)
 		
-		// Add your code here
+	// Add your code here
 		
-		//tweets.foreachRDD(_.take(100).println)
-		//Filters the tweets int the stream, leaving only retweets
-		// (twitter4j.Status)
- 		val retweets = tweets.filter(status => status.isRetweet())
+	//tweets.foreachRDD(_.take(100).println)
+	//Filters the tweets int the stream, leaving only retweets
+	// (twitter4j.Status)
+ 	val retweets = tweets.filter(status => status.isRetweet())
 
- 		//maps every retweet its original tweet id
- 		// (id, SimplifiedStatus)
- 		// SimplifiedStatus = (id, text,langCode,minRetweets,maxRetweets, totalRetweetsInThatLang)
- 		val mapedRetweetsByid = retweets.map(status => mapRetweetsById(status)) 
+ 	//maps every retweet its original tweet id
+ 	// (id, SimplifiedStatus)
+ 	// SimplifiedStatus = (id, text,langCode,minRetweets,maxRetweets, totalRetweetsInThatLang)
+ 	val mapedRetweetsByid = retweets.map(status => mapRetweetsById(status)) 
 
- 		//reduces every retweet with the same key to one with the minRetweets and maxRetweets
- 		// (id, SimplifiedStatus)
+ 	//reduces every retweet with the same key to one with the minRetweets and maxRetweets
+ 	// (id, SimplifiedStatus)
         val counts = mapedRetweetsByid.reduceByKeyAndWindow(reduceRetweets(_,_), Seconds(60), Seconds(5))
 
         //maps the remainning retweets to its language code
@@ -199,20 +199,15 @@ object Twitterstats
 
         // (id, (language, retweetCount, text))
         outRDD.foreachRDD(x =>  write2Log(x.collect ))
-		//everything.foreachRDD(_.sortByKey(false).foreach(x => println(x._1+ " => "+x._2.deep.mkString(" "))))
-
-         
- //       val sortedCounts = counts.map {case(tag, count) => (count, tag)}.transform(rdd => rdd.sortByKey(false))
-   //     sortedCounts.foreachRDD(rdd => println("\nTop 10 hashtags:\n" + rdd.take(10).mkString("\n")))
-
-		// If elements of RDDs of outDStream aren't of type (lang, totalRetweetsInThatLang, idOfOriginalTweet, text, maxRetweetCount, minRetweetCount),
-		//	then you must change the write2Log function accordingly.
-		//outDStream.foreachRDD(rdd => write2Log(rdd.collect))
 	
-		new java.io.File("cpdir").mkdirs
-		ssc.checkpoint("cpdir")
-		ssc.start()
-		ssc.awaitTermination()
+       
+	// If elements of RDDs of outDStream aren't of type (lang, totalRetweetsInThatLang, idOfOriginalTweet, text, maxRetweetCount, minRetweetCount),
+	//	then you must change the write2Log function accordingly.
+	
+	new java.io.File("cpdir").mkdirs
+	ssc.checkpoint("cpdir")
+	ssc.start()
+	ssc.awaitTermination()
 	}
 }
 
